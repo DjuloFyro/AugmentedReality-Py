@@ -1,22 +1,24 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
-import cv2
-import av
-from aruco_detector import find_aruco_markers
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 
-st.title("Camera Stream with OpenCV and Streamlit")
+st.title("WebRTC Camera Stream with Streamlit")
 
-class VideoProcessor(VideoProcessorBase):
-    def __init__(self):
-        self.camera_active = False
+RTC_CONFIGURATION = RTCConfiguration(
+    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+)
 
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
+# Using WebRTC to stream video from the camera
+webrtc_ctx = webrtc_streamer(
+    key="WYH",
+    mode=WebRtcMode.SENDRECV,
+    rtc_configuration=RTC_CONFIGURATION,
+    media_stream_constraints={"video": True, "audio": False},
+    async_processing=False,
+)
 
-        # Apply the aruco marker detection
-        find_aruco_markers(img)
-        
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
-
-# Streamlit-webrtc component
-ctx = webrtc_streamer(key="sample", video_processor_factory=VideoProcessor)
+if webrtc_ctx.video_receiver:
+    while True:
+        frame = webrtc_ctx.video_receiver.get_frame()
+        st.image(frame.to_ndarray(format="bgr24"), channels="BGR")
+else:
+    st.write("Click the button to start the camera.")
