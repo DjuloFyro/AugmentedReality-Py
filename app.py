@@ -1,7 +1,6 @@
 import streamlit as st
 import cv2
 from aruco_detector import find_aruco_markers
-import numpy as np
 
 st.title("Camera Stream with OpenCV and Streamlit")
 
