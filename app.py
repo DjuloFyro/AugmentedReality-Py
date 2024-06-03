@@ -1,38 +1,22 @@
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase
 import cv2
+import av
 from aruco_detector import find_aruco_markers
 
 st.title("Camera Stream with OpenCV and Streamlit")
 
-# Placeholder for the camera frame
-frame_placeholder = st.empty()
+class VideoProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.camera_active = False
 
-# Button to start and stop the camera
-if "camera_active" not in st.session_state:
-    st.session_state.camera_active = False
+    def recv(self, frame):
+        img = frame.to_ndarray(format="bgr24")
 
-if st.button("Toggle Camera"):
-    st.session_state.camera_active = not st.session_state.camera_active
+        # Apply the aruco marker detection
+        find_aruco_markers(img)
+        
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-if st.session_state.camera_active:
-    cap = cv2.VideoCapture(0)
-
-    if not cap.isOpened():
-        st.error("Failed to open camera.")
-    else:
-        while st.session_state.camera_active:
-            ret, frame = cap.read()
-            find_aruco_markers(frame)
-            if not ret:
-                st.error("Failed to read frame from camera.")
-                break
-
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_placeholder.image(frame)
-
-            # Break the loop if the button is toggled off
-            if not st.session_state.camera_active:
-                break
-        cap.release()
-
-st.write("Click the button to open or end the camera.")
+# Streamlit-webrtc component
+ctx = webrtc_streamer(key="sample", video_processor_factory=VideoProcessor)
